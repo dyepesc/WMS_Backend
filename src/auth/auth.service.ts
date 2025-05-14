@@ -10,7 +10,7 @@ export class AuthService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
-    private jwtService: JwtService
+    private jwtService: JwtService,
   ) {}
 
   // Keep existing mock admin user for platform admin authentication
@@ -23,7 +23,10 @@ export class AuthService {
 
   // Existing method for platform admin validation
   async validatePlatformAdmin(email: string, password: string) {
-    if (email === this.mockAdminUser.email && password === this.mockAdminUser.password) {
+    if (
+      email === this.mockAdminUser.email &&
+      password === this.mockAdminUser.password
+    ) {
       const { password, ...result } = this.mockAdminUser;
       return result;
     }
@@ -31,19 +34,25 @@ export class AuthService {
   }
 
   // New method for tenant user validation
-  async validateTenantUser(usernameOrEmail: string, password: string, tenantId?: number) {
+  async validateTenantUser(
+    usernameOrEmail: string,
+    password: string,
+    tenantId?: number,
+  ) {
     const query = this.userRepository.createQueryBuilder('user');
 
     if (tenantId) {
       query.where('user.tenantId = :tenantId', { tenantId });
     }
 
-    query.andWhere('(user.username = :usernameOrEmail OR user.email = :usernameOrEmail)', 
-      { usernameOrEmail });
+    query.andWhere(
+      '(user.username = :usernameOrEmail OR user.email = :usernameOrEmail)',
+      { usernameOrEmail },
+    );
 
     const user = await query.getOne();
 
-    if (user && await bcrypt.compare(password, user.password)) {
+    if (user && (await bcrypt.compare(password, user.password))) {
       const { password, ...result } = user;
       return result;
     }
@@ -64,9 +73,13 @@ export class AuthService {
   }
 
   // New login method for tenant users
-  async loginTenantUser(usernameOrEmail: string, password: string, tenantIdentifier?: string) {
+  async loginTenantUser(
+    usernameOrEmail: string,
+    password: string,
+    tenantIdentifier?: string,
+  ) {
     let tenantId: number | undefined;
-    
+
     // Here you would implement the logic to get tenantId from tenantIdentifier if needed
     // For example:
     // if (tenantIdentifier) {
@@ -74,17 +87,21 @@ export class AuthService {
     //   tenantId = tenant.id;
     // }
 
-    const user = await this.validateTenantUser(usernameOrEmail, password, tenantId);
+    const user = await this.validateTenantUser(
+      usernameOrEmail,
+      password,
+      tenantId,
+    );
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = { 
-      sub: user.id, 
-      username: user.username, 
+    const payload = {
+      sub: user.id,
+      username: user.username,
       email: user.email,
-      role: user.role, 
-      tenantId: user.tenantId 
+      role: user.role,
+      tenantId: user.tenant_id,
     };
 
     return {
@@ -97,21 +114,30 @@ export class AuthService {
         fullName: user.fullName,
         email: user.email,
         role: user.role,
-        tenant_id: user.tenantId
-      }
+        tenant_id: user.tenant_id,
+      },
     };
   }
 
   // Main login method that handles both platform admin and tenant user login
-  async login(loginData: { email?: string, usernameOrEmail?: string, password: string, tenantIdentifier?: string }) {
+  async login(loginData: {
+    email?: string;
+    usernameOrEmail?: string;
+    password: string;
+    tenantIdentifier?: string;
+  }) {
     // If it's a platform admin login attempt (using email)
     if (loginData.email) {
       return this.loginPlatformAdmin(loginData.email, loginData.password);
     }
-    
+
     // If it's a tenant user login attempt (using usernameOrEmail)
     if (loginData.usernameOrEmail) {
-      return this.loginTenantUser(loginData.usernameOrEmail, loginData.password, loginData.tenantIdentifier);
+      return this.loginTenantUser(
+        loginData.usernameOrEmail,
+        loginData.password,
+        loginData.tenantIdentifier,
+      );
     }
 
     throw new UnauthorizedException('Invalid login credentials format');

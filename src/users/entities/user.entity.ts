@@ -1,4 +1,12 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  CreateDateColumn,
+  UpdateDateColumn,
+  JoinColumn,
+} from 'typeorm';
 import { Tenant } from '../../tenants/entities/tenant.entity';
 
 @Entity('users')
@@ -7,7 +15,7 @@ export class User {
   id: number;
 
   @Column({ name: 'tenant_id' })
-  tenantId: number;
+  tenant_id: number;
 
   @Column({ unique: true })
   username: string;
@@ -40,5 +48,6 @@ export class User {
   updatedAt: Date;
 
   @ManyToOne(() => Tenant)
+  @JoinColumn({ name: 'tenant_id' }) // Add this line to explicitly define the foreign key
   tenant: Tenant;
 }

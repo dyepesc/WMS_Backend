@@ -1,7 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
 import { User } from './entities/user.entity';
+import { Tenant } from '../tenants/entities/tenant.entity';
 import { CreateUserDto, UpdateUserDto, ListUsersDto } from './dto/user.dto';
 import * as bcrypt from 'bcrypt';
 
@@ -10,28 +11,50 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @InjectRepository(Tenant)
+    private tenantRepository: Repository<Tenant>,
   ) {}
 
   async create(tenantId: number, dto: CreateUserDto) {
-    const existingUser = await this.userRepository.findOne({
-      where: [
-        { tenantId, username: dto.username },
-        { tenantId, email: dto.email }
-      ]
-    });
+    try {
+      // Check if tenant exists
+      const tenant = await this.tenantRepository.findOne({
+        where: { id: tenantId }
+      });
 
-    if (existingUser) {
-      throw new BadRequestException('Username or email already exists in this tenant');
+      if (!tenant) {
+        throw new NotFoundException(`Tenant with ID ${tenantId} not found`);
+      }
+
+      // Check for existing user with same username or email
+      const existingUser = await this.userRepository.findOne({
+        where: [
+          { tenant_id: tenantId, username: dto.username },
+          { tenant_id: tenantId, email: dto.email }
+        ]
+      });
+
+      if (existingUser) {
+        throw new BadRequestException('Username or email already exists in this tenant');
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(dto.password, 10);
+
+      // Create and save user
+      const user = await this.userRepository.save({
+        ...dto,
+        tenant_id: tenantId,
+        password: hashedPassword,
+      });
+
+      // Remove sensitive data before returning
+      const { password: _, ...result } = user;
+      return result;
+    } catch (error) {
+      console.error('Error creating user:', error);
+      throw new InternalServerErrorException(`Failed to create user: ${error.message}`);
     }
-
-    const hashedPassword = await bcrypt.hash(dto.password, 10);
-    const user = this.userRepository.create({
-      ...dto,
-      tenantId,
-      password: hashedPassword,
-    });
-
-    return this.userRepository.save(user);
   }
 
   async findAll(tenantId: number, queryParams: ListUsersDto) {
@@ -39,7 +62,7 @@ export class UsersService {
     const skip = (page - 1) * limit;
 
     const queryBuilder = this.userRepository.createQueryBuilder('user')
-      .where('user.tenantId = :tenantId', { tenantId });
+      .where('user.tenant_id = :tenantId', { tenantId });
 
     if (filters.role) {
       queryBuilder.andWhere('user.role = :role', { role: filters.role });
@@ -81,7 +104,7 @@ export class UsersService {
 
   async findOne(tenantId: number, userId: number) {
     const user = await this.userRepository.findOne({
-      where: { id: userId, tenantId }
+      where: { id: userId, tenant_id: tenantId }
     });
 
     if (!user) {
@@ -96,7 +119,7 @@ export class UsersService {
 
     if (dto.email && dto.email !== user.email) {
       const existingEmail = await this.userRepository.findOne({
-        where: { tenantId, email: dto.email }
+        where: { tenant_id: tenantId, email: dto.email }
       });
       if (existingEmail) {
         throw new BadRequestException('Email already exists in this tenant');
