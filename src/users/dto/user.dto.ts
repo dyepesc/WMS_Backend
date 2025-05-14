@@ -1,4 +1,14 @@
-import { IsString, IsEmail, IsBoolean, IsOptional, IsIn, IsInt, Min, IsObject } from 'class-validator';
+import {
+  IsString,
+  IsEmail,
+  IsBoolean,
+  IsOptional,
+  IsIn,
+  IsInt,
+  Min,
+  IsObject,
+  IsNotEmpty,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateUserDto {
@@ -15,7 +25,13 @@ export class CreateUserDto {
   fullName: string;
 
   @IsString()
-  @IsIn(['tenant_super_admin', 'tenant_admin', 'warehouse_manager', 'staff_user', 'client_portal_user'])
+  @IsIn([
+    'tenant_super_admin',
+    'tenant_admin',
+    'warehouse_manager',
+    'staff_user',
+    'client_portal_user',
+  ])
   role: string;
 
   @IsOptional()
@@ -38,7 +54,13 @@ export class UpdateUserDto {
 
   @IsOptional()
   @IsString()
-  @IsIn(['tenant_super_admin', 'tenant_admin', 'warehouse_manager', 'staff_user', 'client_portal_user'])
+  @IsIn([
+    'tenant_super_admin',
+    'tenant_admin',
+    'warehouse_manager',
+    'staff_user',
+    'client_portal_user',
+  ])
   role?: string;
 
   @IsOptional()
@@ -96,9 +118,11 @@ export class ListUsersDto {
 
 export class LoginDto {
   @IsString()
+  @IsNotEmpty()
   usernameOrEmail: string;
 
   @IsString()
+  @IsNotEmpty()
   password: string;
 
   @IsOptional()

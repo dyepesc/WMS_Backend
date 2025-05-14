@@ -1,11 +1,19 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { User } from '../users/entities/user.entity';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
-  constructor(private jwtService: JwtService) {}
+  constructor(
+    @InjectRepository(User)
+    private userRepository: Repository<User>,
+    private jwtService: JwtService
+  ) {}
 
-  // This is a mock admin user - in production, you would fetch from database
+  // Keep existing mock admin user for platform admin authentication
   private readonly mockAdminUser = {
     id: 1,
     email: 'admin@example.com',
@@ -13,8 +21,8 @@ export class AuthService {
     role: 'super_admin',
   };
 
-  async validateUser(email: string, password: string) {
-    // In production, validate against database
+  // Existing method for platform admin validation
+  async validatePlatformAdmin(email: string, password: string) {
     if (email === this.mockAdminUser.email && password === this.mockAdminUser.password) {
       const { password, ...result } = this.mockAdminUser;
       return result;
@@ -22,8 +30,29 @@ export class AuthService {
     return null;
   }
 
-  async login(email: string, password: string) {
-    const user = await this.validateUser(email, password);
+  // New method for tenant user validation
+  async validateTenantUser(usernameOrEmail: string, password: string, tenantId?: number) {
+    const query = this.userRepository.createQueryBuilder('user');
+
+    if (tenantId) {
+      query.where('user.tenantId = :tenantId', { tenantId });
+    }
+
+    query.andWhere('(user.username = :usernameOrEmail OR user.email = :usernameOrEmail)', 
+      { usernameOrEmail });
+
+    const user = await query.getOne();
+
+    if (user && await bcrypt.compare(password, user.password)) {
+      const { password, ...result } = user;
+      return result;
+    }
+    return null;
+  }
+
+  // Existing login method for platform admin
+  async loginPlatformAdmin(email: string, password: string) {
+    const user = await this.validatePlatformAdmin(email, password);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -33,4 +62,58 @@ export class AuthService {
       access_token: this.jwtService.sign(payload),
     };
   }
-} 
+
+  // New login method for tenant users
+  async loginTenantUser(usernameOrEmail: string, password: string, tenantIdentifier?: string) {
+    let tenantId: number | undefined;
+    
+    // Here you would implement the logic to get tenantId from tenantIdentifier if needed
+    // For example:
+    // if (tenantIdentifier) {
+    //   const tenant = await this.tenantService.findByIdentifier(tenantIdentifier);
+    //   tenantId = tenant.id;
+    // }
+
+    const user = await this.validateTenantUser(usernameOrEmail, password, tenantId);
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const payload = { 
+      sub: user.id, 
+      username: user.username, 
+      email: user.email,
+      role: user.role, 
+      tenantId: user.tenantId 
+    };
+
+    return {
+      accessToken: this.jwtService.sign(payload),
+      tokenType: 'Bearer',
+      expiresIn: 3600,
+      user: {
+        id: user.id,
+        username: user.username,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        tenant_id: user.tenantId
+      }
+    };
+  }
+
+  // Main login method that handles both platform admin and tenant user login
+  async login(loginData: { email?: string, usernameOrEmail?: string, password: string, tenantIdentifier?: string }) {
+    // If it's a platform admin login attempt (using email)
+    if (loginData.email) {
+      return this.loginPlatformAdmin(loginData.email, loginData.password);
+    }
+    
+    // If it's a tenant user login attempt (using usernameOrEmail)
+    if (loginData.usernameOrEmail) {
+      return this.loginTenantUser(loginData.usernameOrEmail, loginData.password, loginData.tenantIdentifier);
+    }
+
+    throw new UnauthorizedException('Invalid login credentials format');
+  }
+}
