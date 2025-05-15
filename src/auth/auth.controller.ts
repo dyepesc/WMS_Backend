@@ -1,4 +1,14 @@
-import { Controller, Post, Body, ValidationPipe, HttpCode, HttpStatus } from '@nestjs/common';
+// src/auth/auth.controller.ts
+import { 
+  Controller, 
+  Post, 
+  Body, 
+  Param,
+  ValidationPipe, 
+  HttpCode, 
+  HttpStatus,
+  ParseIntPipe
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto as PlatformLoginDto } from './dto/login.dto';
 import { LoginDto as TenantLoginDto } from '../users/dto/user.dto';
@@ -7,25 +17,25 @@ import { LoginDto as TenantLoginDto } from '../users/dto/user.dto';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // Existing platform admin login endpoint
+  // Platform admin login
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  async login(@Body(ValidationPipe) loginDto: PlatformLoginDto) {
-    return this.authService.login({
-      email: loginDto.email,
-      password: loginDto.password
-    });
+  async login(@Body(ValidationPipe) loginDto: { email: string; password: string }) {
+    return this.authService.loginPlatformAdmin(loginDto.email, loginDto.password);
   }
 
-  // New tenant user login endpoint
-  @Post('tenant/login')
+  // Tenant user login with tenant ID
+  @Post('tenant/:tenantId/login')
   @HttpCode(HttpStatus.OK)
-  async tenantLogin(@Body(ValidationPipe) loginDto: TenantLoginDto) {
-    return this.authService.login({
-      usernameOrEmail: loginDto.usernameOrEmail,
-      password: loginDto.password,
-      tenantIdentifier: loginDto.tenantIdentifier
-    });
+  async tenantLogin(
+    @Param('tenantId', ParseIntPipe) tenantId: number,
+    @Body(ValidationPipe) loginDto: { usernameOrEmail: string; password: string }
+  ) {
+    return this.authService.loginTenantUser(
+      loginDto.usernameOrEmail,
+      loginDto.password,
+      tenantId
+    );
   }
 
   @Post('logout')

@@ -34,25 +34,14 @@ export class AuthService {
   }
 
   // New method for tenant user validation
-  async validateTenantUser(
-    usernameOrEmail: string,
-    password: string,
-    tenantId?: number,
-  ) {
-    const query = this.userRepository.createQueryBuilder('user');
+  async validateTenantUser(usernameOrEmail: string, password: string, tenantId: number) {
+    const user = await this.userRepository.createQueryBuilder('user')
+      .where('user.tenant_id = :tenantId', { tenantId })
+      .andWhere('(user.username = :usernameOrEmail OR user.email = :usernameOrEmail)', 
+        { usernameOrEmail })
+      .getOne();
 
-    if (tenantId) {
-      query.where('user.tenantId = :tenantId', { tenantId });
-    }
-
-    query.andWhere(
-      '(user.username = :usernameOrEmail OR user.email = :usernameOrEmail)',
-      { usernameOrEmail },
-    );
-
-    const user = await query.getOne();
-
-    if (user && (await bcrypt.compare(password, user.password))) {
+    if (user && await bcrypt.compare(password, user.password)) {
       const { password, ...result } = user;
       return result;
     }
@@ -73,35 +62,18 @@ export class AuthService {
   }
 
   // New login method for tenant users
-  async loginTenantUser(
-    usernameOrEmail: string,
-    password: string,
-    tenantIdentifier?: string,
-  ) {
-    let tenantId: number | undefined;
-
-    // Here you would implement the logic to get tenantId from tenantIdentifier if needed
-    // For example:
-    // if (tenantIdentifier) {
-    //   const tenant = await this.tenantService.findByIdentifier(tenantIdentifier);
-    //   tenantId = tenant.id;
-    // }
-
-    const user = await this.validateTenantUser(
-      usernameOrEmail,
-      password,
-      tenantId,
-    );
+  async loginTenantUser(usernameOrEmail: string, password: string, tenantId: number) {
+    const user = await this.validateTenantUser(usernameOrEmail, password, tenantId);
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = {
-      sub: user.id,
-      username: user.username,
+    const payload = { 
+      sub: user.id, 
+      username: user.username, 
       email: user.email,
-      role: user.role,
-      tenantId: user.tenant_id,
+      role: user.role, 
+      tenant_id: tenantId  // Ensure tenant_id is included in the token
     };
 
     return {
@@ -114,8 +86,8 @@ export class AuthService {
         fullName: user.fullName,
         email: user.email,
         role: user.role,
-        tenant_id: user.tenant_id,
-      },
+        tenant_id: tenantId
+      }
     };
   }
 
@@ -136,7 +108,7 @@ export class AuthService {
       return this.loginTenantUser(
         loginData.usernameOrEmail,
         loginData.password,
-        loginData.tenantIdentifier,
+        loginData.tenantIdentifier ? parseInt(loginData.tenantIdentifier) : 0
       );
     }
 
