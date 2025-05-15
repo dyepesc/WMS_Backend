@@ -100,4 +100,54 @@ export class CustomersService {
       }
     };
   }
+
+  async findOne(tenantId: number, customerId: number) {
+    const customer = await this.customerRepository.findOne({
+      where: { id: customerId, tenant_id: tenantId }
+    });
+
+    if (!customer) {
+      throw new NotFoundException(`Customer with ID ${customerId} not found or does not belong to tenant ${tenantId}`);
+    }
+
+    return customer;
+  }
+
+  async update(tenantId: number, customerId: number, updateCustomerDto: Partial<CreateCustomerDto>) {
+    const customer = await this.findOne(tenantId, customerId);
+
+    // If code is being updated, check for duplicates
+    if (updateCustomerDto.code && updateCustomerDto.code !== customer.code) {
+      const existingCustomer = await this.customerRepository.findOne({
+        where: { tenant_id: tenantId, code: updateCustomerDto.code }
+      });
+
+      if (existingCustomer) {
+        throw new BadRequestException(`Customer with code ${updateCustomerDto.code} already exists`);
+      }
+    }
+
+    // Validate account manager if provided
+    if (updateCustomerDto.accountManagerId) {
+      const accountManager = await this.userRepository.findOne({
+        where: { id: updateCustomerDto.accountManagerId, tenant_id: tenantId }
+      });
+
+      if (!accountManager) {
+        throw new NotFoundException(`Account manager with ID ${updateCustomerDto.accountManagerId} not found`);
+      }
+    }
+
+    // Update the customer
+    Object.assign(customer, updateCustomerDto);
+    return this.customerRepository.save(customer);
+  }
+
+  async remove(tenantId: number, customerId: number) {
+    const customer = await this.findOne(tenantId, customerId);
+    
+    // Implement soft delete by updating status to 'inactive'
+    customer.status = 'inactive';
+    return this.customerRepository.save(customer);
+  }
 }
