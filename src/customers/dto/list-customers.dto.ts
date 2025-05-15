@@ -1,8 +1,16 @@
 // src/customers/dto/list-customers.dto.ts
-import { IsString, IsOptional, IsBoolean, IsNumber, IsIn } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsNumber,
+  IsIn,
+  IsEnum,
+} from 'class-validator';
 import { Type } from 'class-transformer';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 
-export class ListCustomersDto {
+export class ListCustomersDto extends PaginationQueryDto {
   @IsOptional()
   @IsString()
   code?: string;
@@ -13,7 +21,7 @@ export class ListCustomersDto {
 
   @IsOptional()
   @IsString()
-  @IsIn(['active', 'inactive'])
+  @IsIn(['active', 'inactive', 'archived'])
   status?: string;
 
   @IsOptional()
@@ -25,6 +33,10 @@ export class ListCustomersDto {
   @IsNumber()
   @Type(() => Number)
   accountManagerId?: number;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
 
   @IsOptional()
   @IsNumber()
@@ -41,8 +53,8 @@ export class ListCustomersDto {
   @IsIn(['name', 'code', 'createdAt'])
   sortBy?: string = 'name';
 
-  @IsOptional()
-  @IsString()
-  @IsIn(['asc', 'desc'])
-  sortOrder?: string = 'asc';
+  // @IsOptional()
+  // @IsString()
+  // @IsIn(['asc', 'desc'])
+  // sortOrder?: string = 'asc';
 }

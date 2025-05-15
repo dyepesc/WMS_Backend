@@ -7,9 +7,11 @@ import { TenantModule } from './tenants/tenant.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { CustomersModule } from './customers/customers.module';
+import { AppConfigModule } from './config/config.module';
 
 @Module({
   imports: [
+    AppConfigModule,
     ConfigModule.forRoot(),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],

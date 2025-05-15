@@ -70,10 +70,9 @@ export class AuthService {
 
     const payload = { 
       sub: user.id, 
-      username: user.username, 
       email: user.email,
-      role: user.role, 
-      tenant_id: tenantId  // Ensure tenant_id is included in the token
+      role: [user.role],
+      tenant_id: tenantId
     };
 
     return {
@@ -85,8 +84,8 @@ export class AuthService {
         username: user.username,
         fullName: user.fullName,
         email: user.email,
-        role: user.role,
-        tenant_id: tenantId
+        roles: [user.role],
+        tenantId: tenantId
       }
     };
   }

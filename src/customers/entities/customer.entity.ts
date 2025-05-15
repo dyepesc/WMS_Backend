@@ -4,12 +4,15 @@ import {
   Column,
   PrimaryGeneratedColumn,
   ManyToOne,
+  OneToMany,
   CreateDateColumn,
   UpdateDateColumn,
   JoinColumn,
 } from 'typeorm';
 import { Tenant } from '../../tenants/entities/tenant.entity';
 import { User } from '../../users/entities/user.entity';
+import { CustomerContact } from './customer-contact.entity';
+import { CustomerDocument } from './customer-document.entity';
 
 @Entity('customers')
 export class Customer {
@@ -17,7 +20,7 @@ export class Customer {
   id: number;
 
   @Column({ name: 'tenant_id' })
-  tenant_id: number;
+  tenantId: number;
 
   @Column({ unique: true })
   code: string;
@@ -114,6 +117,12 @@ export class Customer {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
+
+  @OneToMany(() => CustomerContact, contact => contact.customer)
+  contacts: CustomerContact[];
+
+  @OneToMany(() => CustomerDocument, document => document.customer)
+  documents: CustomerDocument[];
 
   @ManyToOne(() => Tenant)
   @JoinColumn({ name: 'tenant_id' })

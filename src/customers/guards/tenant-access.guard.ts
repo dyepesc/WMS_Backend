@@ -6,18 +6,22 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { Observable } from 'rxjs';
+import { RequestWithUser } from '../../common/interfaces/request-with-user.interface';
 
 @Injectable()
 export class TenantAccessGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
-  canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest();
+  canActivate(
+    context: ExecutionContext,
+  ): boolean | Promise<boolean> | Observable<boolean> {
+    const request = context.switchToHttp().getRequest<RequestWithUser>();
     const user = request.user;
     const requestedTenantId = parseInt(request.params.tenantId, 10);
 
     // Check if user belongs to the requested tenant
-    if (user.tenant_id !== requestedTenantId) {
+    if (user.tenantId !== requestedTenantId) {
       throw new ForbiddenException(
         'You can only manage customers in your own tenant',
       );
@@ -29,7 +33,7 @@ export class TenantAccessGuard implements CanActivate {
       'tenant_admin',
       'account_manager_supervisor',
     ];
-    if (!allowedRoles.includes(user.role)) {
+    if (!user.roles.some(role => allowedRoles.includes(role))) {
       throw new ForbiddenException(
         'You do not have permission to manage customers',
       );
