@@ -1,14 +1,15 @@
 // src/customers/customers.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { CustomersController } from './customers.controller';
-import { CustomersService } from './customers.service';
 import { Customer } from './entities/customer.entity';
-import { User } from '../users/entities/user.entity';
+import { CustomerContact } from './entities/customer-contact.entity';
+import { CustomerContactsController } from './controllers/customer-contacts.controller';
+import { CustomerContactsService } from './services/customer-contacts.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Customer, User])],
-  controllers: [CustomersController],
-  providers: [CustomersService],
+  imports: [TypeOrmModule.forFeature([Customer, CustomerContact])],
+  controllers: [CustomerContactsController],
+  providers: [CustomerContactsService],
+  exports: [CustomerContactsService],
 })
 export class CustomersModule {}

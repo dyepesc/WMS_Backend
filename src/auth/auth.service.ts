@@ -34,14 +34,21 @@ export class AuthService {
   }
 
   // New method for tenant user validation
-  async validateTenantUser(usernameOrEmail: string, password: string, tenantId: number) {
-    const user = await this.userRepository.createQueryBuilder('user')
+  async validateTenantUser(
+    usernameOrEmail: string,
+    password: string,
+    tenantId: number,
+  ) {
+    const user = await this.userRepository
+      .createQueryBuilder('user')
       .where('user.tenant_id = :tenantId', { tenantId })
-      .andWhere('(user.username = :usernameOrEmail OR user.email = :usernameOrEmail)', 
-        { usernameOrEmail })
+      .andWhere(
+        '(user.username = :usernameOrEmail OR user.email = :usernameOrEmail)',
+        { usernameOrEmail },
+      )
       .getOne();
 
-    if (user && await bcrypt.compare(password, user.password)) {
+    if (user && (await bcrypt.compare(password, user.password))) {
       const { password, ...result } = user;
       return result;
     }
@@ -62,18 +69,26 @@ export class AuthService {
   }
 
   // New login method for tenant users
-  async loginTenantUser(usernameOrEmail: string, password: string, tenantId: number) {
-    const user = await this.validateTenantUser(usernameOrEmail, password, tenantId);
+  async loginTenantUser(
+    usernameOrEmail: string,
+    password: string,
+    tenantId: number,
+  ) {
+    const user = await this.validateTenantUser(
+      usernameOrEmail,
+      password,
+      tenantId,
+    );
     if (!user) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const payload = { 
-      sub: user.id, 
-      username: user.username, 
+    const payload = {
+      sub: user.id,
+      username: user.username,
       email: user.email,
-      role: user.role, 
-      tenant_id: tenantId  // Ensure tenant_id is included in the token
+      role: user.role,
+      tenant_id: tenantId, // Ensure tenant_id is included in the token
     };
 
     return {
@@ -86,32 +101,22 @@ export class AuthService {
         fullName: user.fullName,
         email: user.email,
         role: user.role,
-        tenant_id: tenantId
-      }
+        tenant_id: tenantId,
+      },
     };
   }
 
   // Main login method that handles both platform admin and tenant user login
-  async login(loginData: {
-    email?: string;
-    usernameOrEmail?: string;
-    password: string;
-    tenantIdentifier?: string;
-  }) {
-    // If it's a platform admin login attempt (using email)
-    if (loginData.email) {
-      return this.loginPlatformAdmin(loginData.email, loginData.password);
-    }
+  async login(user: any) {
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      roles: user.roles || [user.role], // Handle both single role and array
+      tenant_id: user.tenant_id,
+    };
 
-    // If it's a tenant user login attempt (using usernameOrEmail)
-    if (loginData.usernameOrEmail) {
-      return this.loginTenantUser(
-        loginData.usernameOrEmail,
-        loginData.password,
-        loginData.tenantIdentifier ? parseInt(loginData.tenantIdentifier) : 0
-      );
-    }
-
-    throw new UnauthorizedException('Invalid login credentials format');
+    return {
+      access_token: this.jwtService.sign(payload),
+    };
   }
 }

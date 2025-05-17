@@ -7,9 +7,11 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { Tenant } from '../../tenants/entities/tenant.entity';
 import { User } from '../../users/entities/user.entity';
+import { CustomerContact } from './customer-contact.entity';
 
 @Entity('customers')
 export class Customer {
@@ -126,4 +128,7 @@ export class Customer {
   @ManyToOne(() => User)
   @JoinColumn({ name: 'created_by_user_id' })
   createdByUser: User;
+
+  @OneToMany(() => CustomerContact, (contact) => contact.customer)
+  contacts: CustomerContact[];
 }

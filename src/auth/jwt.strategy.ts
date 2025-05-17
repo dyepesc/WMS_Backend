@@ -16,7 +16,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     return {
       userId: payload.sub,
       email: payload.email,
-      role: payload.role,
+      roles: Array.isArray(payload.roles) ? payload.roles : [payload.role], // Handle both single role and array
       tenant_id: payload.tenant_id,
     };
   }

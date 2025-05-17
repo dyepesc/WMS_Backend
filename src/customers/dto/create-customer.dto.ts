@@ -1,5 +1,14 @@
 // src/customers/dto/create-customer.dto.ts
-import { IsString, IsOptional, IsEmail, IsUrl, IsNumber, IsBoolean, IsObject, IsIn } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsEmail,
+  IsUrl,
+  IsNumber,
+  IsBoolean,
+  IsObject,
+  IsIn,
+} from 'class-validator';
 
 export class CreateCustomerDto {
   @IsString()
