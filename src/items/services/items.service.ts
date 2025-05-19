@@ -6,7 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Item } from '../entities/items.entity';
-import { ItemUnitConversion } from '../entities/item-unit-conversion.entity';
+import { ItemUom } from '../entities/item-uom.entity';
 import { CreateItemDto } from '../dto/create-items.dto';
 import { UpdateItemDto } from '../dto/update-items.dto';
 import { ListItemsDto } from '../dto/list-items.dto';
@@ -15,73 +15,69 @@ import { ListItemsDto } from '../dto/list-items.dto';
 export class ItemsService {
   constructor(
     @InjectRepository(Item)
-    private itemsRepository: Repository<Item>,
-    @InjectRepository(ItemUnitConversion)
-    private unitConversionRepository: Repository<ItemUnitConversion>,
+    private itemRepository: Repository<Item>,
+    @InjectRepository(ItemUom)
+    private itemUomRepository: Repository<ItemUom>,
   ) {}
 
-  async create(
-    tenantId: number,
-    customerId: number,
-    createItemDto: CreateItemDto,
-    userId: number,
-  ): Promise<Item> {
-    // Check if SKU already exists for this tenant and customer
-    const existingItem = await this.itemsRepository.findOne({
-      where: { tenant_id: tenantId, customerId, sku: createItemDto.sku },
-    });
-
-    if (existingItem) {
-      throw new BadRequestException('SKU already exists for this customer');
-    }
-
+  async create(tenantId: number, customerId: number, createdByUserId: number, createItemDto: CreateItemDto): Promise<Item> {
     // Create the item
-    const item = this.itemsRepository.create({
+    const item = this.itemRepository.create({
       ...createItemDto,
       tenant_id: tenantId,
-      customerId,
-      createdByUserId: userId,
+      customerId: customerId,
+      createdByUserId: createdByUserId,
     });
 
-    const savedItem = await this.itemsRepository.save(item);
+    const savedItem = await this.itemRepository.save(item);
 
-    // Create base UOM conversion with tenant_id
-    const baseUom = this.unitConversionRepository.create({
-      itemId: savedItem.id,
-      tenant_id: tenantId,
-      uom: createItemDto.baseUom.uom,
-      conversionFactor: 1,
-      isBaseUnit: true,
-      barcode: createItemDto.baseUom.barcode,
-    });
+    // Create base UOM if provided
+    if (createItemDto.baseUom) {
+      const baseUom = this.itemUomRepository.create({
+        tenant_id: tenantId,
+        itemId: savedItem.id,
+        ...createItemDto.baseUom,
+      });
 
-    await this.unitConversionRepository.save(baseUom);
+      await this.itemUomRepository.save(baseUom);
+    }
 
+    // Return the created item with its relationships
     return this.findOne(tenantId, customerId, savedItem.id);
   }
 
   async findAll(tenantId: number, customerId: number, query: ListItemsDto) {
-    const {
-      page = 1,
-      limit = 20,
-      sortBy = 'sku',
-      sortOrder = 'asc',
-      ...filters
-    } = query;
+    const { page = 1, limit = 20, sortBy = 'sku', sortOrder = 'asc', ...filters } = query;
 
-    const queryBuilder = this.itemsRepository
+    const queryBuilder = this.itemRepository
       .createQueryBuilder('item')
       .where('item.tenant_id = :tenantId', { tenantId })
       .andWhere('item.customerId = :customerId', { customerId });
 
     // Apply filters
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined) {
-        queryBuilder.andWhere(`item.${key} = :${key}`, { [key]: value });
-      }
-    });
+    if (filters.sku) {
+      queryBuilder.andWhere('item.sku ILIKE :sku', { sku: `%${filters.sku}%` });
+    }
+    if (filters.name) {
+      queryBuilder.andWhere('item.name ILIKE :name', { name: `%${filters.name}%` });
+    }
+    if (filters.category) {
+      queryBuilder.andWhere('item.category = :category', { category: filters.category });
+    }
+    if (filters.itemType) {
+      queryBuilder.andWhere('item.itemType = :itemType', { itemType: filters.itemType });
+    }
+    if (filters.status) {
+      queryBuilder.andWhere('item.status = :status', { status: filters.status });
+    }
+    if (filters.isActive !== undefined) {
+      queryBuilder.andWhere('item.isActive = :isActive', { isActive: filters.isActive });
+    }
+    if (filters.isHazmat !== undefined) {
+      queryBuilder.andWhere('item.isHazmat = :isHazmat', { isHazmat: filters.isHazmat });
+    }
 
-    // Apply sorting with explicit type casting
+    // Apply sorting
     queryBuilder.orderBy(`item.${sortBy}`, sortOrder.toUpperCase() as 'ASC' | 'DESC');
 
     // Apply pagination
@@ -101,12 +97,8 @@ export class ItemsService {
     };
   }
 
-  async findOne(
-    tenantId: number,
-    customerId: number,
-    id: number,
-  ): Promise<Item> {
-    const item = await this.itemsRepository.findOne({
+  async findOne(tenantId: number, customerId: number, id: number): Promise<Item> {
+    const item = await this.itemRepository.findOne({
       where: { id, tenant_id: tenantId, customerId },
       relations: ['unitConversions'],
     });
@@ -118,40 +110,15 @@ export class ItemsService {
     return item;
   }
 
-  async update(
-    tenantId: number,
-    customerId: number,
-    id: number,
-    updateItemDto: UpdateItemDto,
-  ): Promise<Item> {
+  async update(tenantId: number, customerId: number, id: number, updateItemDto: UpdateItemDto): Promise<Item> {
     const item = await this.findOne(tenantId, customerId, id);
-
-    // If SKU is being updated, check for uniqueness
-    if (updateItemDto.sku && updateItemDto.sku !== item.sku) {
-      const existingItem = await this.itemsRepository.findOne({
-        where: { tenant_id: tenantId, customerId, sku: updateItemDto.sku },
-      });
-
-      if (existingItem) {
-        throw new BadRequestException('SKU already exists for this customer');
-      }
-    }
 
     Object.assign(item, updateItemDto);
-    return this.itemsRepository.save(item);
+    return this.itemRepository.save(item);
   }
 
-  async remove(
-    tenantId: number,
-    customerId: number,
-    id: number,
-  ): Promise<void> {
+  async remove(tenantId: number, customerId: number, id: number): Promise<void> {
     const item = await this.findOne(tenantId, customerId, id);
-
-    // Soft delete by setting isActive to false
-    item.isActive = false;
-    item.status = 'inactive';
-
-    await this.itemsRepository.save(item);
+    await this.itemRepository.remove(item);
   }
 }

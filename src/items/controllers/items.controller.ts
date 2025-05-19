@@ -16,6 +16,7 @@ import { UpdateItemDto } from '../dto/update-items.dto';
 import { ListItemsDto } from '../dto/list-items.dto';
 import { TenantAccessGuard } from '../../customers/guards/tenant-access.guard';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { IsString, IsEnum } from 'class-validator';
 
 // Define the request interface
 interface RequestWithUser extends Request {
@@ -41,8 +42,8 @@ export class ItemsController {
     return this.itemsService.create(
       tenantId,
       customerId,
-      createItemDto,
       req.user.id,
+      createItemDto
     );
   }
 

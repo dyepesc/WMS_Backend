@@ -1,13 +1,55 @@
-import { IsString, IsOptional, IsNumber, IsBoolean, IsEnum, Min, IsObject, ValidateNested } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsBoolean,
+  IsEnum,
+  IsObject,
+  ValidateNested,
+} from 'class-validator';
 import { Type } from 'class-transformer';
+// import { BaseUomDto } from './base-uom.dto';
+import { ItemType } from '../entities/items.entity';
 
 export class BaseUomDto {
   @IsString()
   uom: string;
 
+  @IsNumber()
+  @IsOptional()
+  conversionFactor?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  isBaseUnit?: boolean;
+
   @IsString()
   @IsOptional()
   barcode?: string;
+
+  @IsNumber()
+  @IsOptional()
+  length?: number;
+
+  @IsNumber()
+  @IsOptional()
+  width?: number;
+
+  @IsNumber()
+  @IsOptional()
+  height?: number;
+
+  @IsString()
+  @IsOptional()
+  dimensionUnit?: string;
+
+  @IsNumber()
+  @IsOptional()
+  weight?: number;
+
+  @IsString()
+  @IsOptional()
+  weightUnit?: string;
 }
 
 export class CreateItemDto {
@@ -25,13 +67,23 @@ export class CreateItemDto {
   @IsOptional()
   category?: string;
 
+  @IsEnum(ItemType)
+  itemType: ItemType;
+
   @IsString()
+  @IsEnum(['active', 'inactive', 'discontinued'])
+  status: string;
+
+  @IsBoolean()
   @IsOptional()
-  itemType?: string;
+  isActive?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  isHazmat?: boolean;
 
   @IsNumber()
   @IsOptional()
-  @Min(0)
   minOnHand?: number;
 
   @IsNumber()
@@ -53,18 +105,6 @@ export class CreateItemDto {
   @IsString()
   @IsOptional()
   lotNumberTracking?: string;
-
-  @IsString()
-  @IsOptional()
-  status?: string;
-
-  @IsBoolean()
-  @IsOptional()
-  isHazmat?: boolean;
-
-  @IsString()
-  @IsOptional()
-  hazmatClass?: string;
 
   @IsString()
   @IsOptional()
@@ -113,10 +153,6 @@ export class CreateItemDto {
   @IsString()
   @IsOptional()
   weightUnit?: string;
-
-  @IsBoolean()
-  @IsOptional()
-  isActive?: boolean;
 
   @IsObject()
   @ValidateNested()

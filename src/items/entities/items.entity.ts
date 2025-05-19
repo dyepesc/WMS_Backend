@@ -1,21 +1,40 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, OneToMany, CreateDateColumn, UpdateDateColumn, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
+  JoinColumn,
+} from 'typeorm';
 import { Tenant } from '../../tenants/entities/tenant.entity';
 import { Customer } from '../../customers/entities/customer.entity';
 import { User } from '../../users/entities/user.entity';
-import { ItemUnitConversion } from './item-unit-conversion.entity';
+import { ItemUom } from './item-uom.entity';
+
+export enum ItemType {
+  STANDARD = 'standard',
+  FINISHED = 'finished',
+  PACKAGING = 'packaging',
+  SERVICE = 'service'
+}
 
 @Entity('items')
 export class Item {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ name: 'tenant_id' })
   tenant_id: number;
 
   @Column({ name: 'customer_id' })
   customerId: number;
 
-  @Column({ unique: true })
+  @Column({ name: 'created_by_user_id' })
+  createdByUserId: number;
+
+  @Column()
   sku: string;
 
   @Column()
@@ -27,35 +46,31 @@ export class Item {
   @Column({ nullable: true })
   category: string;
 
-  @Column({ name: 'item_type', default: 'standard' })
-  itemType: string;
+  @Column({ 
+    name: 'item_type',
+    type: 'enum',
+    enum: ItemType,
+    default: ItemType.STANDARD
+  })
+  itemType: ItemType;
 
-  @Column({ name: 'min_on_hand', default: 0 })
-  minOnHand: number;
-
-  @Column({ name: 'max_on_hand', nullable: true })
-  maxOnHand: number;
-
-  @Column({ name: 'reorder_point', nullable: true })
-  reorderPoint: number;
-
-  @Column({ name: 'serial_number_tracking', default: 'none' })
-  serialNumberTracking: string;
-
-  @Column({ name: 'expiration_date_tracking', default: false })
-  expirationDateTracking: boolean;
-
-  @Column({ name: 'lot_number_tracking', default: 'none' })
-  lotNumberTracking: string;
-
-  @Column({ default: 'active' })
+  @Column()
   status: string;
+
+  @Column({ name: 'is_active', default: true })
+  isActive: boolean;
 
   @Column({ name: 'is_hazmat', default: false })
   isHazmat: boolean;
 
-  @Column({ name: 'hazmat_class', nullable: true })
-  hazmatClass: string;
+  @Column({ name: 'min_on_hand', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  minOnHand: number;
+
+  @Column({ name: 'max_on_hand', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  maxOnHand: number;
+
+  @Column({ name: 'reorder_point', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  reorderPoint: number;
 
   @Column({ nullable: true })
   notes: string;
@@ -69,10 +84,22 @@ export class Item {
   @Column({ name: 'country_of_origin', nullable: true })
   countryOfOrigin: string;
 
-  @Column({ name: 'unit_cost', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  @Column({
+    name: 'unit_cost',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+  })
   unitCost: number;
 
-  @Column({ name: 'unit_price', type: 'decimal', precision: 10, scale: 2, nullable: true })
+  @Column({
+    name: 'unit_price',
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+  })
   unitPrice: number;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
@@ -84,20 +111,23 @@ export class Item {
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   height: number;
 
-  @Column({ name: 'dimension_unit', default: 'cm' })
+  @Column({ name: 'dimension_unit', nullable: true })
   dimensionUnit: string;
 
   @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
   weight: number;
 
-  @Column({ name: 'weight_unit', default: 'kg' })
+  @Column({ name: 'weight_unit', nullable: true })
   weightUnit: string;
 
-  @Column({ name: 'is_active', default: true })
-  isActive: boolean;
+  @Column({ name: 'serial_number_tracking', nullable: true })
+  serialNumberTracking: string;
 
-  @Column({ name: 'created_by_user_id' })
-  createdByUserId: number;
+  @Column({ name: 'expiration_date_tracking', default: false })
+  expirationDateTracking: boolean;
+
+  @Column({ name: 'lot_number_tracking', nullable: true })
+  lotNumberTracking: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
@@ -115,8 +145,8 @@ export class Item {
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'created_by_user_id' })
-  createdByUser: User;
+  creator: User;
 
-  @OneToMany(() => ItemUnitConversion, conversion => conversion.item)
-  unitConversions: ItemUnitConversion[];
+  @OneToMany(() => ItemUom, (uom) => uom.item)
+  unitConversions: ItemUom[];
 }

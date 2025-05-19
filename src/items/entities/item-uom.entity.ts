@@ -4,12 +4,14 @@ import {
   PrimaryGeneratedColumn,
   ManyToOne,
   JoinColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
 import { Item } from './items.entity';
 import { Tenant } from '../../tenants/entities/tenant.entity';
 
 @Entity('item_unit_conversions')
-export class ItemUnitConversion {
+export class ItemUom {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -33,8 +35,35 @@ export class ItemUnitConversion {
   @Column({ name: 'is_base_unit', default: false })
   isBaseUnit: boolean;
 
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  length: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  width: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  height: number;
+
+  @Column({ name: 'dimension_unit', nullable: true })
+  dimensionUnit: string;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, nullable: true })
+  weight: number;
+
+  @Column({ name: 'weight_unit', nullable: true })
+  weightUnit: string;
+
   @Column({ nullable: true })
   barcode: string;
+
+  @Column({ nullable: true })
+  notes: string;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 
   @ManyToOne(() => Item, (item) => item.unitConversions)
   @JoinColumn({ name: 'item_id' })
