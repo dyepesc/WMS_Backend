@@ -1,4 +1,4 @@
-// src/customers/customers.controller.ts
+// src/customers/controllers/customers.controller.ts
 import {
   Controller,
   Get,
@@ -14,10 +14,10 @@ import {
   Put,
   Delete,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { TenantAccessGuard } from './guards/tenant-access.guard';
-import { CustomersService } from './customers.service';
-import { CreateCustomerDto, ListCustomersDto, UpdateCustomerDto } from './dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { TenantAccessGuard } from '../guards/tenant-access.guard';
+import { CustomersService } from '../services/customers.service';
+import { CreateCustomerDto, ListCustomersDto, UpdateCustomerDto } from '../dto';
 
 @Controller('api/v1/tenants/:tenantId/customers')
 @UseGuards(JwtAuthGuard, TenantAccessGuard)

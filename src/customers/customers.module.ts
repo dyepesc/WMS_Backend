@@ -1,8 +1,8 @@
 // src/customers/customers.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { CustomersController } from './customers.controller';
-import { CustomersService } from './customers.service';
+import { CustomersController } from './controllers/customers.controller';
+import { CustomersService } from './services/customers.service';
 import { Customer } from './entities/customer.entity';
 import { User } from '../users/entities/user.entity';
 

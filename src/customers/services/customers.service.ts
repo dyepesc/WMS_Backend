@@ -1,11 +1,15 @@
-// src/customers/customers.service.ts
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+// src/customers/services/customers.service.ts
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Customer } from './entities/customer.entity';
-import { CreateCustomerDto } from './dto/create-customer.dto';
-import { ListCustomersDto } from './dto/list-customers.dto';
-import { User } from '../users/entities/user.entity';
+import { Customer } from '../entities/customer.entity';
+import { CreateCustomerDto } from '../dto/create-customer.dto';
+import { ListCustomersDto } from '../dto/list-customers.dto';
+import { User } from '../../users/entities/user.entity';
 
 @Injectable()
 export class CustomersService {
@@ -16,50 +20,59 @@ export class CustomersService {
     private userRepository: Repository<User>,
   ) {}
 
-  async create(tenantId: number, createCustomerDto: CreateCustomerDto, currentUser: User) {
+  async create(
+    tenantId: number,
+    createCustomerDto: CreateCustomerDto,
+    currentUser: User,
+  ) {
     // Check for duplicate code
     const existingCustomer = await this.customerRepository.findOne({
-      where: { tenant_id: tenantId, code: createCustomerDto.code }
+      where: { tenant_id: tenantId, code: createCustomerDto.code },
     });
 
     if (existingCustomer) {
-      throw new BadRequestException(`Customer with code ${createCustomerDto.code} already exists`);
+      throw new BadRequestException(
+        `Customer with code ${createCustomerDto.code} already exists`,
+      );
     }
 
     // Validate account manager if provided
     if (createCustomerDto.accountManagerId) {
       const accountManager = await this.userRepository.findOne({
-        where: { id: createCustomerDto.accountManagerId, tenant_id: tenantId }
+        where: { id: createCustomerDto.accountManagerId, tenant_id: tenantId },
       });
 
       if (!accountManager) {
-        throw new NotFoundException(`Account manager with ID ${createCustomerDto.accountManagerId} not found`);
+        throw new NotFoundException(
+          `Account manager with ID ${createCustomerDto.accountManagerId} not found`,
+        );
       }
     }
 
     const customer = this.customerRepository.create({
       ...createCustomerDto,
       tenant_id: tenantId,
-      createdByUserId: currentUser.id
+      createdByUserId: currentUser.id,
     });
 
     return this.customerRepository.save(customer);
   }
 
   async findAll(tenantId: number, queryParams: ListCustomersDto) {
-    const { 
-      code, 
-      name, 
-      status, 
-      portalAccess, 
+    const {
+      code,
+      name,
+      status,
+      portalAccess,
       accountManagerId,
-      page = 1, 
-      limit = 20, 
-      sortBy = 'name', 
-      sortOrder = 'asc' 
+      page = 1,
+      limit = 20,
+      sortBy = 'name',
+      sortOrder = 'asc',
     } = queryParams;
 
-    const queryBuilder = this.customerRepository.createQueryBuilder('customer')
+    const queryBuilder = this.customerRepository
+      .createQueryBuilder('customer')
       .where('customer.tenant_id = :tenantId', { tenantId });
 
     if (code) {
@@ -75,11 +88,15 @@ export class CustomersService {
     }
 
     if (portalAccess !== undefined) {
-      queryBuilder.andWhere('customer.portalAccess = :portalAccess', { portalAccess });
+      queryBuilder.andWhere('customer.portalAccess = :portalAccess', {
+        portalAccess,
+      });
     }
 
     if (accountManagerId) {
-      queryBuilder.andWhere('customer.accountManagerId = :accountManagerId', { accountManagerId });
+      queryBuilder.andWhere('customer.accountManagerId = :accountManagerId', {
+        accountManagerId,
+      });
     }
 
     const skip = (page - 1) * limit;
@@ -96,45 +113,55 @@ export class CustomersService {
         totalItems: total,
         totalPages: Math.ceil(total / limit),
         currentPage: page,
-        limit
-      }
+        limit,
+      },
     };
   }
 
   async findOne(tenantId: number, customerId: number) {
     const customer = await this.customerRepository.findOne({
-      where: { id: customerId, tenant_id: tenantId }
+      where: { id: customerId, tenant_id: tenantId },
     });
 
     if (!customer) {
-      throw new NotFoundException(`Customer with ID ${customerId} not found or does not belong to tenant ${tenantId}`);
+      throw new NotFoundException(
+        `Customer with ID ${customerId} not found or does not belong to tenant ${tenantId}`,
+      );
     }
 
     return customer;
   }
 
-  async update(tenantId: number, customerId: number, updateCustomerDto: Partial<CreateCustomerDto>) {
+  async update(
+    tenantId: number,
+    customerId: number,
+    updateCustomerDto: Partial<CreateCustomerDto>,
+  ) {
     const customer = await this.findOne(tenantId, customerId);
 
     // If code is being updated, check for duplicates
     if (updateCustomerDto.code && updateCustomerDto.code !== customer.code) {
       const existingCustomer = await this.customerRepository.findOne({
-        where: { tenant_id: tenantId, code: updateCustomerDto.code }
+        where: { tenant_id: tenantId, code: updateCustomerDto.code },
       });
 
       if (existingCustomer) {
-        throw new BadRequestException(`Customer with code ${updateCustomerDto.code} already exists`);
+        throw new BadRequestException(
+          `Customer with code ${updateCustomerDto.code} already exists`,
+        );
       }
     }
 
     // Validate account manager if provided
     if (updateCustomerDto.accountManagerId) {
       const accountManager = await this.userRepository.findOne({
-        where: { id: updateCustomerDto.accountManagerId, tenant_id: tenantId }
+        where: { id: updateCustomerDto.accountManagerId, tenant_id: tenantId },
       });
 
       if (!accountManager) {
-        throw new NotFoundException(`Account manager with ID ${updateCustomerDto.accountManagerId} not found`);
+        throw new NotFoundException(
+          `Account manager with ID ${updateCustomerDto.accountManagerId} not found`,
+        );
       }
     }
 
@@ -145,7 +172,7 @@ export class CustomersService {
 
   async remove(tenantId: number, customerId: number) {
     const customer = await this.findOne(tenantId, customerId);
-    
+
     // Implement soft delete by updating status to 'inactive'
     customer.status = 'inactive';
     return this.customerRepository.save(customer);
