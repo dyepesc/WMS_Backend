@@ -102,20 +102,37 @@ export class UsersService {
     };
   }
 
-  async findOne(tenantId: number, userId: number) {
-    const user = await this.userRepository.findOne({
-      where: { id: userId, tenant_id: tenantId }
-    });
-
+  async findOne(id: number): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
-      throw new NotFoundException(`User not found`);
+      throw new NotFoundException(`User with ID ${id} not found`);
     }
+    return user;
+  }
 
+  async findByEmail(email: string): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (!user) {
+      throw new NotFoundException(`User with email ${email} not found`);
+    }
+    return user;
+  }
+
+  async findOneByTenant(tenantId: number, userId: number): Promise<User> {
+    const user = await this.userRepository.findOne({ 
+      where: { 
+        id: userId,
+        tenant_id: tenantId 
+      } 
+    });
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found in tenant ${tenantId}`);
+    }
     return user;
   }
 
   async update(tenantId: number, userId: number, dto: UpdateUserDto) {
-    const user = await this.findOne(tenantId, userId);
+    const user = await this.findOne(userId);
 
     if (dto.email && dto.email !== user.email) {
       const existingEmail = await this.userRepository.findOne({
@@ -131,7 +148,7 @@ export class UsersService {
   }
 
   async remove(tenantId: number, userId: number) {
-    const user = await this.findOne(tenantId, userId);
+    const user = await this.findOne(userId);
     user.isActive = false;
     await this.userRepository.save(user);
   }

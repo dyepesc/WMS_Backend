@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../users/entities/user.entity';
 import * as bcrypt from 'bcrypt';
+import { UsersService } from '../users/users.service';
 
 @Injectable()
 export class AuthService {
@@ -11,6 +12,7 @@ export class AuthService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private jwtService: JwtService,
+    private usersService: UsersService,
   ) {}
 
   // Keep existing mock admin user for platform admin authentication
@@ -92,26 +94,23 @@ export class AuthService {
   }
 
   // Main login method that handles both platform admin and tenant user login
-  async login(loginData: {
-    email?: string;
-    usernameOrEmail?: string;
-    password: string;
-    tenantIdentifier?: string;
-  }) {
-    // If it's a platform admin login attempt (using email)
-    if (loginData.email) {
-      return this.loginPlatformAdmin(loginData.email, loginData.password);
-    }
-
-    // If it's a tenant user login attempt (using usernameOrEmail)
-    if (loginData.usernameOrEmail) {
-      return this.loginTenantUser(
-        loginData.usernameOrEmail,
-        loginData.password,
-        loginData.tenantIdentifier ? parseInt(loginData.tenantIdentifier) : 0
-      );
-    }
-
-    throw new UnauthorizedException('Invalid login credentials format');
+  async login(user: any) {
+    console.log('Login user:', user); // Debug log
+    
+    const payload = { 
+      sub: user.id,  // Make sure this is set
+      email: user.email 
+    };
+    
+    console.log('JWT Payload:', payload); // Debug log
+    
+    return {
+      access_token: this.jwtService.sign(payload),
+      user: {
+        id: user.id,
+        email: user.email,
+        // ... other user properties
+      }
+    };
   }
 }

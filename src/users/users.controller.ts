@@ -18,6 +18,7 @@ import { TenantAdminGuard } from './guards/tenant-admin.guard';
 import { SuperAdminGuard } from '../tenants/guards/super-admin.guard';
 import { UsersService } from './users.service';
 import { CreateUserDto, UpdateUserDto, ListUsersDto } from './dto/user.dto';
+import { TenantAccessGuard } from '../customers/guards/tenant-access.guard';
 
 @Controller('api/v1/admin/tenants')
 export class UsersController {
@@ -59,7 +60,7 @@ export class UsersController {
     @Param('tenantId', ParseIntPipe) tenantId: number,
     @Param('userId', ParseIntPipe) userId: number,
   ) {
-    return this.usersService.findOne(tenantId, userId);
+    return this.usersService.findOne(tenantId);
   }
 
   @Put(':tenantId/users/:userId')
@@ -80,5 +81,19 @@ export class UsersController {
     @Param('userId', ParseIntPipe) userId: number,
   ) {
     await this.usersService.remove(tenantId, userId);
+  }
+}
+
+@Controller('api/v1/tenants/:tenantId/users')
+@UseGuards(JwtAuthGuard, TenantAccessGuard)
+export class TenantUsersController {
+  constructor(private readonly usersService: UsersService) {}
+
+  @Get(':id')
+  findOne(
+    @Param('tenantId') tenantId: number,
+    @Param('id') userId: number,
+  ) {
+    return this.usersService.findOneByTenant(tenantId, userId);
   }
 }
