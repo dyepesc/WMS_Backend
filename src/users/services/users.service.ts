@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Like } from 'typeorm';
-import { User } from './entities/user.entity';
-import { Tenant } from '../tenants/entities/tenant.entity';
-import { CreateUserDto, UpdateUserDto, ListUsersDto } from './dto/user.dto';
+import { User } from '../entities/user.entity';
+import { Tenant } from '../../tenants/entities/tenant.entity';
+import { CreateUserDto, UpdateUserDto, ListUsersDto } from '../dto/user.dto';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()

@@ -13,11 +13,11 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { TenantAdminGuard } from './guards/tenant-admin.guard';
-import { SuperAdminGuard } from '../tenants/guards/super-admin.guard';
-import { UsersService } from './users.service';
-import { CreateUserDto, UpdateUserDto, ListUsersDto } from './dto/user.dto';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { TenantAdminGuard } from '../guards/tenant-admin.guard';
+import { SuperAdminGuard } from '../../tenants/guards/super-admin.guard';
+import { UsersService } from '../services/users.service';
+import { CreateUserDto, UpdateUserDto, ListUsersDto } from '../dto/user.dto';
 
 @Controller('api/v1/admin/tenants')
 export class UsersController {
