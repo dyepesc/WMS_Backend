@@ -9,8 +9,5 @@ export const AppDataSource = new DataSource({
   database: process.env.DATABASE_NAME,
   entities: [__dirname + '/**/*.entity{.ts,.js}'],
   migrations: [__dirname + '/migrations/**/*{.ts,.js}'],
-//   cli: {
-//     migrationsDir: 'src/migrations',
-//   },
   synchronize: false, // Keep this false for production
 });
