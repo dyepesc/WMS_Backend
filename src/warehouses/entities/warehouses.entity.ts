@@ -9,9 +9,8 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Tenant } from '../../tenants/entities/tenant.entity';
-import { Customer } from '../../customers/entities/customer.entity';
-import { User } from '../../users/entities/user.entity';
 import { WarehouseZone } from './warehouse-zone.entity';
+import { WarehouseLocation } from './warehouse-location.entity';
 
 @Entity('warehouses')
 export class Warehouse {
@@ -20,12 +19,6 @@ export class Warehouse {
 
   @Column({ name: 'tenant_id' })
   tenant_id: number;
-
-  @Column({ name: 'customer_id' })
-  customer_id: number;
-
-  @Column({ name: 'created_by_user_id' })
-  created_by_user_id: number;
 
   @Column()
   name: string;
@@ -51,10 +44,10 @@ export class Warehouse {
   @Column()
   country: string;
 
-  @Column({ name: 'phone_number' })
+  @Column({ name: 'phone_number', nullable: true })
   phoneNumber: string;
 
-  @Column()
+  @Column({ nullable: true })
   email: string;
 
   @Column({ name: 'time_zone' })
@@ -66,24 +59,22 @@ export class Warehouse {
   @Column()
   status: string;
 
+  @Column({ name: 'created_by' })
+  createdByUserId: number;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @ManyToOne(() => Tenant)
+  @ManyToOne(() => Tenant, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'tenant_id' })
   tenant: Tenant;
 
-  @ManyToOne(() => Customer)
-  @JoinColumn({ name: 'customer_id' })
-  customer: Customer;
-
-  @ManyToOne(() => User)
-  @JoinColumn({ name: 'created_by_user_id' })
-  createdBy: User;
-
   @OneToMany(() => WarehouseZone, (zone) => zone.warehouse)
   zones: WarehouseZone[];
+
+  @OneToMany(() => WarehouseLocation, (location) => location.warehouse)
+  locations: WarehouseLocation[];
 }

@@ -33,12 +33,12 @@ export class CarriersController {
     @Param('tenantId', ParseIntPipe) tenantId: number,
     @Body() createCarrierDto: CreateCarrierDto,
   ) {
-    console.log('Request user:', req.user); // Debug log
-    console.log('Request headers:', req.headers); // Debug log
+    // console.log('Request user:', req.user); // Debug log
+    // console.log('Request headers:', req.headers); // Debug log
 
     // Get user ID from the request user object using userId instead of id
     const userId = req.user?.userId;
-    console.log('User ID:', userId); // Debug log
+    // console.log('User ID:', userId); // Debug log
 
     if (!userId) {
       throw new BadRequestException('User ID is required');

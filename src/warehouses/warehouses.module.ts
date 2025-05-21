@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { WarehousesController } from './controllers/warehouses.controller';
 import { WarehousesService } from './services/warehouses.service';
-import { Warehouse } from './entities/warehouse.entity';
+import { Warehouse } from './entities/warehouses.entity';
 import { WarehouseZone } from './entities/warehouse-zone.entity';
 import { WarehouseLocation } from './entities/warehouse-location.entity';
 import { WarehouseZonesController } from './controllers/warehouse-zones.controller';
@@ -12,7 +12,11 @@ import { WarehouseLocationsService } from './services/warehouse-locations.servic
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Warehouse, WarehouseZone, WarehouseLocation]),
+    TypeOrmModule.forFeature([
+      Warehouse,
+      WarehouseZone,
+      WarehouseLocation,
+    ]),
   ],
   controllers: [
     WarehousesController,

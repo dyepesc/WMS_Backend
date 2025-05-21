@@ -22,7 +22,7 @@ export class CarriersService {
     createCarrierDto: CreateCarrierDto,
     userId: number,
   ): Promise<Carrier> {
-    console.log('Creating carrier with userId:', userId); // Debug log
+    // console.log('Creating carrier with userId:', userId); // Debug log
 
     // Check for duplicate name
     const existingName = await this.carrierRepository.findOne({
@@ -52,7 +52,7 @@ export class CarriersService {
       created_by: userId,
     });
 
-    console.log('Created carrier entity:', carrier); // Debug log
+    // console.log('Created carrier entity:', carrier); // Debug log
     return this.carrierRepository.save(carrier);
   }
 

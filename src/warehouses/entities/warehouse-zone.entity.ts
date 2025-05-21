@@ -8,10 +8,8 @@ import {
   UpdateDateColumn,
   JoinColumn,
 } from 'typeorm';
-import { Tenant } from '../../tenants/entities/tenant.entity';
-import { Warehouse } from './warehouse.entity';
+import { Warehouse } from './warehouses.entity';
 import { WarehouseLocation } from './warehouse-location.entity';
-import { User } from '../../users/entities/user.entity';
 
 @Entity('warehouse_zones')
 export class WarehouseZone {
@@ -23,9 +21,6 @@ export class WarehouseZone {
 
   @Column({ name: 'warehouse_id' })
   warehouse_id: number;
-
-  @Column({ name: 'created_by', nullable: true })
-  created_by: number;
 
   @Column()
   name: string;
@@ -42,23 +37,18 @@ export class WarehouseZone {
   @Column()
   status: string;
 
+  @Column({ name: 'created_by' })
+  createdByUserId: number;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @ManyToOne(() => Tenant)
-  @JoinColumn({ name: 'tenant_id' })
-  tenant: Tenant;
-
-  @ManyToOne(() => Warehouse)
+  @ManyToOne(() => Warehouse, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'warehouse_id' })
   warehouse: Warehouse;
-
-  @ManyToOne(() => User)
-  @JoinColumn({ name: 'created_by' })
-  createdBy: User;
 
   @OneToMany(() => WarehouseLocation, (location) => location.zone)
   locations: WarehouseLocation[];

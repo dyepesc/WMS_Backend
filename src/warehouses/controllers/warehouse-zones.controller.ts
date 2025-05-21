@@ -8,80 +8,69 @@ import {
   Param,
   Query,
   UseGuards,
-  Req,
+  ParseIntPipe,
+  HttpCode,
+  HttpStatus,
+  Request,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { WarehouseTenantAccessGuard } from '../guards/tenant-access.guard';
 import { WarehouseZonesService } from '../services/warehouse-zones.service';
 import { CreateWarehouseZoneDto } from '../dto/create-warehouse-zone.dto';
 import { UpdateWarehouseZoneDto } from '../dto/update-warehouse-zone.dto';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { TenantAccessGuard } from '../../customers/guards/tenant-access.guard';
-import { RequestWithUser } from '../../auth/interfaces/request-with-user.interface';
 
-@Controller('api/v1/tenants/:tenantId/customers/:customerId/warehouses/:warehouseId/zones')
-@UseGuards(JwtAuthGuard, TenantAccessGuard)
+@Controller('api/v1/tenants/:tenantId/warehouses/:warehouseId/zones')
+@UseGuards(JwtAuthGuard, WarehouseTenantAccessGuard)
 export class WarehouseZonesController {
   constructor(private readonly warehouseZonesService: WarehouseZonesService) {}
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   async create(
-    @Param('tenantId') tenantId: number,
-    @Param('customerId') customerId: number,
-    @Param('warehouseId') warehouseId: number,
-    @Req() req: RequestWithUser,
-    @Body() createWarehouseZoneDto: CreateWarehouseZoneDto,
+    @Request() req,
+    @Param('tenantId', ParseIntPipe) tenantId: number,
+    @Param('warehouseId', ParseIntPipe) warehouseId: number,
+    @Body() createZoneDto: CreateWarehouseZoneDto,
   ) {
-    return this.warehouseZonesService.create(
-      tenantId,
-      customerId,
-      warehouseId,
-      req.user.id,
-      createWarehouseZoneDto,
-    );
+    const userId = req.user?.userId;
+    return this.warehouseZonesService.create(tenantId, warehouseId, userId, createZoneDto);
   }
 
   @Get()
   findAll(
-    @Param('tenantId') tenantId: number,
-    @Param('warehouseId') warehouseId: number,
+    @Param('tenantId', ParseIntPipe) tenantId: number,
+    @Param('warehouseId', ParseIntPipe) warehouseId: number,
     @Query() query: any,
   ) {
     return this.warehouseZonesService.findAll(tenantId, warehouseId, query);
   }
 
   @Get(':id')
-  async findOne(
-    @Param('tenantId') tenantId: number,
-    @Param('customerId') customerId: number,
-    @Param('warehouseId') warehouseId: number,
-    @Param('id') id: number,
+  findOne(
+    @Param('tenantId', ParseIntPipe) tenantId: number,
+    @Param('warehouseId', ParseIntPipe) warehouseId: number,
+    @Param('id', ParseIntPipe) id: number,
   ) {
-    return this.warehouseZonesService.findOne(tenantId, customerId, warehouseId, id);
+    return this.warehouseZonesService.findOne(tenantId, warehouseId, id);
   }
 
   @Put(':id')
-  async update(
-    @Param('tenantId') tenantId: number,
-    @Param('customerId') customerId: number,
-    @Param('warehouseId') warehouseId: number,
-    @Param('id') id: number,
-    @Body() updateWarehouseZoneDto: UpdateWarehouseZoneDto,
+  update(
+    @Param('tenantId', ParseIntPipe) tenantId: number,
+    @Param('warehouseId', ParseIntPipe) warehouseId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateZoneDto: UpdateWarehouseZoneDto,
   ) {
-    return this.warehouseZonesService.update(
-      tenantId,
-      customerId,
-      warehouseId,
-      id,
-      updateWarehouseZoneDto,
-    );
+    return this.warehouseZonesService.update(tenantId, warehouseId, id, updateZoneDto);
   }
 
   @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   remove(
-    @Param('tenantId') tenantId: number,
-    @Param('customerId') customerId: number,
-    @Param('warehouseId') warehouseId: number,
-    @Param('id') id: number,
+    @Param('tenantId', ParseIntPipe) tenantId: number,
+    @Param('warehouseId', ParseIntPipe) warehouseId: number,
+    @Param('id', ParseIntPipe) id: number,
   ) {
-    return this.warehouseZonesService.remove(tenantId, customerId, warehouseId, id);
+    return this.warehouseZonesService.remove(tenantId, warehouseId, id);
   }
 }

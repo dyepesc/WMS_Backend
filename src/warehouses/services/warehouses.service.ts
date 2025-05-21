@@ -5,8 +5,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Warehouse } from '../entities/warehouse.entity';
-import { CreateWarehouseDto } from '../dto/create-warehouse.dto';
+import { Warehouse } from '../entities/warehouses.entity';
+import { CreateWarehouseDto } from '../dto/create-warehouses.dto';
 import { UpdateWarehouseDto } from '../dto/update-warehouse.dto';
 import { ListWarehousesDto } from '../dto/list-warehouses.dto';
 
@@ -17,26 +17,26 @@ export class WarehousesService {
     private readonly warehouseRepository: Repository<Warehouse>,
   ) {}
 
-  async create(
-    tenantId: number,
-    customerId: number,
-    userId: number,
-    createWarehouseDto: CreateWarehouseDto,
-  ): Promise<Warehouse> {
-    const warehouse = new Warehouse();
-    Object.assign(warehouse, {
+  async create(tenantId: number, createWarehouseDto: CreateWarehouseDto, userId: number): Promise<Warehouse> {
+    // Check for duplicate code
+    const existingCode = await this.warehouseRepository.findOne({
+      where: { tenant_id: tenantId, code: createWarehouseDto.code }
+    });
+    if (existingCode) {
+      throw new BadRequestException('Warehouse code already exists in this tenant');
+    }
+
+    const warehouse = this.warehouseRepository.create({
       ...createWarehouseDto,
       tenant_id: tenantId,
-      customer_id: customerId,
-      created_by: userId,
+      createdByUserId: userId,
     });
-    
+
     return this.warehouseRepository.save(warehouse);
   }
 
   async findAll(
     tenantId: number,
-    customerId: number,
     listWarehousesDto: ListWarehousesDto,
   ): Promise<[Warehouse[], number]> {
     const {
@@ -56,8 +56,7 @@ export class WarehousesService {
 
     const queryBuilder = this.warehouseRepository
       .createQueryBuilder('warehouse')
-      .where('warehouse.tenant_id = :tenantId', { tenantId })
-      .andWhere('warehouse.customer_id = :customerId', { customerId });
+      .where('warehouse.tenant_id = :tenantId', { tenantId });
 
     // Apply search filter
     if (search) {

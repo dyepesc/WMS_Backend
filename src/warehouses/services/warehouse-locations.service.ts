@@ -6,7 +6,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { WarehouseLocation } from '../entities/warehouse-location.entity';
-import { Warehouse } from '../entities/warehouse.entity';
+import { Warehouse } from '../entities/warehouses.entity';
 import { WarehouseZone } from '../entities/warehouse-zone.entity';
 import { CreateWarehouseLocationDto } from '../dto/create-warehouse-location.dto';
 import { UpdateWarehouseLocationDto } from '../dto/update-warehouse-location.dto';
@@ -15,7 +15,7 @@ import { UpdateWarehouseLocationDto } from '../dto/update-warehouse-location.dto
 export class WarehouseLocationsService {
   constructor(
     @InjectRepository(WarehouseLocation)
-    private readonly warehouseLocationRepository: Repository<WarehouseLocation>,
+    private readonly locationRepository: Repository<WarehouseLocation>,
     @InjectRepository(Warehouse)
     private readonly warehouseRepository: Repository<Warehouse>,
     @InjectRepository(WarehouseZone)
@@ -24,7 +24,6 @@ export class WarehouseLocationsService {
 
   async create(
     tenantId: number,
-    customerId: number,
     warehouseId: number,
     userId: number,
     createWarehouseLocationDto: CreateWarehouseLocationDto,
@@ -53,7 +52,7 @@ export class WarehouseLocationsService {
     }
 
     // Check if location barcode already exists in this warehouse
-    const existingLocation = await this.warehouseLocationRepository.findOne({
+    const existingLocation = await this.locationRepository.findOne({
       where: {
         warehouse_id: warehouseId,
         locationBarcode: createWarehouseLocationDto.locationBarcode,
@@ -75,7 +74,7 @@ export class WarehouseLocationsService {
       created_by: userId,
     });
 
-    return this.warehouseLocationRepository.save(location);
+    return this.locationRepository.save(location);
   }
 
   async findAll(tenantId: number, warehouseId: number, query: any) {
@@ -87,7 +86,7 @@ export class WarehouseLocationsService {
       ...filters
     } = query;
 
-    const queryBuilder = this.warehouseLocationRepository
+    const queryBuilder = this.locationRepository
       .createQueryBuilder('location')
       .where('location.tenant_id = :tenantId', { tenantId })
       .andWhere('location.warehouse_id = :warehouseId', { warehouseId });
@@ -136,18 +135,23 @@ export class WarehouseLocationsService {
     };
   }
 
-  async findOne(
-    tenantId: number,
-    customerId: number,
-    warehouseId: number,
-    id: number,
-  ): Promise<WarehouseLocation> {
-    const location = await this.warehouseLocationRepository.findOne({
-      where: { id, tenant_id: tenantId, warehouse_id: warehouseId },
+  async findOne(tenantId: number, warehouseId: number, id: number): Promise<WarehouseLocation> {
+    // First verify the warehouse belongs to the tenant
+    const warehouse = await this.warehouseRepository.findOne({
+      where: { id: warehouseId, tenant_id: tenantId }
+    });
+
+    if (!warehouse) {
+      throw new NotFoundException('Warehouse not found or does not belong to tenant');
+    }
+
+    // Then find the location
+    const location = await this.locationRepository.findOne({
+      where: { id, warehouse_id: warehouseId }
     });
 
     if (!location) {
-      throw new NotFoundException(`Warehouse location with ID ${id} not found`);
+      throw new NotFoundException('Location not found');
     }
 
     return location;
@@ -155,12 +159,11 @@ export class WarehouseLocationsService {
 
   async update(
     tenantId: number,
-    customerId: number,
     warehouseId: number,
     id: number,
     updateWarehouseLocationDto: UpdateWarehouseLocationDto,
   ): Promise<WarehouseLocation> {
-    const location = await this.findOne(tenantId, customerId, warehouseId, id);
+    const location = await this.findOne(tenantId, warehouseId, id);
 
     // If zone is being updated, verify it exists and belongs to the warehouse
     if (updateWarehouseLocationDto.zoneId) {
@@ -183,7 +186,7 @@ export class WarehouseLocationsService {
       updateWarehouseLocationDto.locationBarcode &&
       updateWarehouseLocationDto.locationBarcode !== location.locationBarcode
     ) {
-      const existingLocation = await this.warehouseLocationRepository.findOne({
+      const existingLocation = await this.locationRepository.findOne({
         where: {
           warehouse_id: warehouseId,
           locationBarcode: updateWarehouseLocationDto.locationBarcode,
@@ -198,19 +201,18 @@ export class WarehouseLocationsService {
     }
 
     Object.assign(location, updateWarehouseLocationDto);
-    return this.warehouseLocationRepository.save(location);
+    return this.locationRepository.save(location);
   }
 
   async remove(
     tenantId: number,
-    customerId: number,
     warehouseId: number,
     id: number,
   ): Promise<void> {
-    const location = await this.findOne(tenantId, customerId, warehouseId, id);
+    const location = await this.findOne(tenantId, warehouseId, id);
 
     // Soft delete by updating status
     location.status = 'inactive';
-    await this.warehouseLocationRepository.save(location);
+    await this.locationRepository.save(location);
   }
 }

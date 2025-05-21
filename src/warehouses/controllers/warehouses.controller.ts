@@ -8,61 +8,65 @@ import {
   Param,
   Query,
   UseGuards,
-  Req,
+  ParseIntPipe,
+  HttpCode,
+  HttpStatus,
+  Request,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { WarehouseTenantAccessGuard } from '../guards/tenant-access.guard';
 import { WarehousesService } from '../services/warehouses.service';
-import { CreateWarehouseDto } from '../dto/create-warehouse.dto';
+import { CreateWarehouseDto } from '../dto/create-warehouses.dto';
 import { UpdateWarehouseDto } from '../dto/update-warehouse.dto';
 import { ListWarehousesDto } from '../dto/list-warehouses.dto';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { TenantAccessGuard } from '../../customers/guards/tenant-access.guard';
-import { RequestWithUser } from '../../auth/interfaces/request-with-user.interface';
 
-@Controller('api/v1/tenants/:tenantId/customers/:customerId/warehouses')
-@UseGuards(JwtAuthGuard, TenantAccessGuard)
+@Controller('api/v1/tenants/:tenantId/warehouses')
+@UseGuards(JwtAuthGuard, WarehouseTenantAccessGuard)
 export class WarehousesController {
   constructor(private readonly warehousesService: WarehousesService) {}
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   async create(
-    @Param('tenantId') tenantId: number,
-    @Param('customerId') customerId: number,
-    @Req() req: RequestWithUser,
+    @Request() req,
+    @Param('tenantId', ParseIntPipe) tenantId: number,
     @Body() createWarehouseDto: CreateWarehouseDto,
   ) {
-    return this.warehousesService.create(
-      tenantId,
-      customerId,
-      req.user.id,
-      createWarehouseDto,
-    );
+    const userId = req.user?.userId;
+    return this.warehousesService.create(tenantId, createWarehouseDto, userId);
   }
 
   @Get()
-  async findAll(
-    @Param('tenantId') tenantId: number,
-    @Param('customerId') customerId: number,
-    @Query() listWarehousesDto: ListWarehousesDto,
+  findAll(
+    @Param('tenantId', ParseIntPipe) tenantId: number,
+    @Query() queryParams: ListWarehousesDto,
   ) {
-    return this.warehousesService.findAll(tenantId, customerId, listWarehousesDto);
+    return this.warehousesService.findAll(tenantId, queryParams);
   }
 
   @Get(':id')
-  findOne(@Param('tenantId') tenantId: number, @Param('id') id: number) {
+  findOne(
+    @Param('tenantId', ParseIntPipe) tenantId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.warehousesService.findOne(tenantId, id);
   }
 
   @Put(':id')
   update(
-    @Param('tenantId') tenantId: number,
-    @Param('id') id: number,
+    @Param('tenantId', ParseIntPipe) tenantId: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateWarehouseDto: UpdateWarehouseDto,
   ) {
     return this.warehousesService.update(tenantId, id, updateWarehouseDto);
   }
 
   @Delete(':id')
-  remove(@Param('tenantId') tenantId: number, @Param('id') id: number) {
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(
+    @Param('tenantId', ParseIntPipe) tenantId: number,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.warehousesService.remove(tenantId, id);
   }
 }

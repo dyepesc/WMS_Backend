@@ -1,9 +1,5 @@
 import { IsString, IsOptional, IsEnum } from 'class-validator';
-
-export enum MeasurementStandard {
-  METRIC = 'Metric',
-  IMPERIAL = 'Imperial'
-}
+import { MeasurementStandard } from '../../common/enums/measurement-standard.enum';
 
 export class CreateWarehouseDto {
   @IsString()
@@ -50,3 +46,4 @@ export class CreateWarehouseDto {
   @IsOptional()
   status?: string;
 }
+ 

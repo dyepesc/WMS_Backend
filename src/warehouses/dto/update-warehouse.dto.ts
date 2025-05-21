@@ -1,7 +1,10 @@
-import { IsString, IsOptional, IsEnum } from 'class-validator';
-import { MeasurementStandard } from './create-warehouse.dto';
+import { IsString, IsOptional, IsEnum } from 'class-validator'; 
+import { PartialType } from '@nestjs/mapped-types';
+import { CreateWarehouseDto } from './create-warehouses.dto';
+import { MeasurementStandard } from '../../common/enums/measurement-standard.enum';
 
-export class UpdateWarehouseDto {
+
+export class UpdateWarehouseDto extends PartialType(CreateWarehouseDto) {
   @IsString()
   @IsOptional()
   name?: string;

@@ -8,94 +8,69 @@ import {
   Param,
   Query,
   UseGuards,
-  Req,
+  ParseIntPipe,
+  HttpCode,
+  HttpStatus,
+  Request,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { WarehouseTenantAccessGuard } from '../guards/tenant-access.guard';
 import { WarehouseLocationsService } from '../services/warehouse-locations.service';
 import { CreateWarehouseLocationDto } from '../dto/create-warehouse-location.dto';
 import { UpdateWarehouseLocationDto } from '../dto/update-warehouse-location.dto';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
-import { TenantAccessGuard } from '../../customers/guards/tenant-access.guard';
-import { RequestWithUser } from '../../auth/interfaces/request-with-user.interface';
 
-@Controller(
-  'api/v1/tenants/:tenantId/customers/:customerId/warehouses/:warehouseId/locations',
-)
-@UseGuards(JwtAuthGuard, TenantAccessGuard)
+@Controller('api/v1/tenants/:tenantId/warehouses/:warehouseId/locations')
+@UseGuards(JwtAuthGuard, WarehouseTenantAccessGuard)
 export class WarehouseLocationsController {
-  constructor(
-    private readonly warehouseLocationsService: WarehouseLocationsService,
-  ) {}
+  constructor(private readonly locationsService: WarehouseLocationsService) {}
 
   @Post()
+  @HttpCode(HttpStatus.CREATED)
   async create(
-    @Param('tenantId') tenantId: number,
-    @Param('customerId') customerId: number,
-    @Param('warehouseId') warehouseId: number,
-    @Req() req: RequestWithUser,
-    @Body() createWarehouseLocationDto: CreateWarehouseLocationDto,
+    @Request() req,
+    @Param('tenantId', ParseIntPipe) tenantId: number,
+    @Param('warehouseId', ParseIntPipe) warehouseId: number,
+    @Body() createLocationDto: CreateWarehouseLocationDto,
   ) {
-    return this.warehouseLocationsService.create(
-      tenantId,
-      customerId,
-      warehouseId,
-      req.user.id,
-      createWarehouseLocationDto,
-    );
+    const userId = req.user?.userId;
+    return this.locationsService.create(tenantId, warehouseId, userId, createLocationDto);
   }
 
   @Get()
   findAll(
-    @Param('tenantId') tenantId: number,
-    @Param('warehouseId') warehouseId: number,
+    @Param('tenantId', ParseIntPipe) tenantId: number,
+    @Param('warehouseId', ParseIntPipe) warehouseId: number,
     @Query() query: any,
   ) {
-    return this.warehouseLocationsService.findAll(tenantId, warehouseId, query);
+    return this.locationsService.findAll(tenantId, warehouseId, query);
   }
 
   @Get(':id')
-  async findOne(
-    @Param('tenantId') tenantId: number,
-    @Param('customerId') customerId: number,
-    @Param('warehouseId') warehouseId: number,
-    @Param('id') id: number,
+  findOne(
+    @Param('tenantId', ParseIntPipe) tenantId: number,
+    @Param('warehouseId', ParseIntPipe) warehouseId: number,
+    @Param('id', ParseIntPipe) id: number,
   ) {
-    return this.warehouseLocationsService.findOne(
-      tenantId,
-      customerId,
-      warehouseId,
-      id,
-    );
+    return this.locationsService.findOne(tenantId, warehouseId, id);
   }
 
   @Put(':id')
-  async update(
-    @Param('tenantId') tenantId: number,
-    @Param('customerId') customerId: number,
-    @Param('warehouseId') warehouseId: number,
-    @Param('id') id: number,
-    @Body() updateWarehouseLocationDto: UpdateWarehouseLocationDto,
+  update(
+    @Param('tenantId', ParseIntPipe) tenantId: number,
+    @Param('warehouseId', ParseIntPipe) warehouseId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateLocationDto: UpdateWarehouseLocationDto,
   ) {
-    return this.warehouseLocationsService.update(
-      tenantId,
-      customerId,
-      warehouseId,
-      id,
-      updateWarehouseLocationDto,
-    );
+    return this.locationsService.update(tenantId, warehouseId, id, updateLocationDto);
   }
 
   @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
   remove(
-    @Param('tenantId') tenantId: number,
-    @Param('customerId') customerId: number,
-    @Param('warehouseId') warehouseId: number,
-    @Param('id') id: number,
+    @Param('tenantId', ParseIntPipe) tenantId: number,
+    @Param('warehouseId', ParseIntPipe) warehouseId: number,
+    @Param('id', ParseIntPipe) id: number,
   ) {
-    return this.warehouseLocationsService.remove(
-      tenantId,
-      customerId,
-      warehouseId,
-      id,
-    );
+    return this.locationsService.remove(tenantId, warehouseId, id);
   }
 }
